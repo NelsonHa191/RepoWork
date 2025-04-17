@@ -1,11 +1,11 @@
+// lib/auth.ts
 import { betterAuth } from "better-auth";
 import { drizzleAdapter } from "better-auth/adapters/drizzle";
 import { nextCookies } from "better-auth/next-js";
-// import { sendEmail } from "./email"; // your email sending function
 import * as schema from "./db/schema"; // Import the schema
-
 import { drizzle } from "drizzle-orm/neon-http";
 
+// Create the database connection
 const db = drizzle(process.env.DATABASE_URL!);
 
 export const auth = betterAuth({
@@ -22,14 +22,22 @@ export const auth = betterAuth({
       clientSecret: process.env.GOOGLE_CLIENT_SECRET as string,
     },
   },
+  // Add better error handling with explicit type
+  onError: (error: Error) => {
+    console.error("Auth error:", error);
+  },
   plugins: [nextCookies()], // make sure this is the last plugin in the array
-  // emailVerification: {
-  //     sendVerificationEmail: async ( { user, url, token }, request) => {
-  //     await sendEmail({
-  //         to: user.email,
-  //         subject: "Verify your email address",
-  //         text: `Click the link to verify your email: ${url}`,
-  //     });
-  //     },
-  // },
 });
+
+// Create a type-safe function for getting server sessions
+export async function getServerSession(request: Request) {
+  try {
+    // Pass the request context explicitly to avoid TS errors
+    return await auth.api.getSession({
+      headers: request.headers,
+    });
+  } catch (error) {
+    console.error("Failed to get session:", error);
+    return null;
+  }
+}
