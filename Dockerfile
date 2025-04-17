@@ -32,7 +32,7 @@ RUN pnpm install --frozen-lockfile --prod=false
 COPY . .
 
 # Build application
-RUN pnpm build
+RUN npx next build --experimental-build-mode compile
 
 # Remove development dependencies
 RUN pnpm prune --prod
