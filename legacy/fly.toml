@@ -7,7 +7,7 @@ primary_region = "sea"
 [env]
   PORT = "3000"
   NODE_ENV = "production"
-  NEXT_PUBLIC_YOUTUBE_API_KEY = "AIzaSyCox-p0kSRp1-J0UpAFJKjYQ24SDZ9jR9I"
+  # NEXT_PUBLIC_YOUTUBE_API_KEY was set here. Removed: set secrets with `fly secrets set` instead.
   NEXT_PUBLIC_APP_URL = "https://repowork.fly.dev"
 
 [http_service]

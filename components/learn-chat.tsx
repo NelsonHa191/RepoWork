@@ -6,7 +6,8 @@ import ChatInput from "./chat-input";
 import { Message, useChat } from "@ai-sdk/react";
 import { useCallback, useMemo, useRef, useState, useEffect } from "react";
 import { generateUUID } from "@/lib/utils";
-import { User } from "better-auth";
+import { saveChat } from "@/lib/demo/history";
+import type { DemoUser as User } from "@/lib/demo/user";
 import { useRouter } from "next/navigation";
 
 export default function LearnChat({
@@ -43,8 +44,15 @@ export default function LearnChat({
   );
   const [isGenerating, setIsGenerating] = useState<boolean>(false);
 
-  const { messages, input, handleInputChange, handleSubmit, append, setInput } =
-    useChat({
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    append,
+    setInput,
+    status,
+  } = useChat({
       id,
       initialMessages,
       generateId: generateUUID,
@@ -78,6 +86,19 @@ export default function LearnChat({
         setIsGenerating(false);
       },
     });
+
+  // Demo: save the chat and lesson progress in this browser once each lesson
+  // finishes (the original API route saved them to the database instead)
+  useEffect(() => {
+    if (!user || status !== "ready" || messages.length === 0) return;
+    saveChat({
+      id,
+      title: lessonTopic || messages[0].content,
+      mode: "learn",
+      messages,
+      learnSession: { currentLesson, lessonTopic, lessonSequence, lastVideoQuery },
+    });
+  }, [status, messages, id, user, currentLesson, lessonTopic, lessonSequence, lastVideoQuery]);
 
   // Update URL for authenticated users on first message
   useEffect(() => {
@@ -204,6 +225,7 @@ export default function LearnChat({
         handleInputChange={handleInputChange}
         mode="learn"
         setMode={modeHandler}
+        setInput={setInput}
       />
     );
   }

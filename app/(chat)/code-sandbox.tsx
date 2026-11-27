@@ -23,7 +23,7 @@ export default function CodeSandbox({ code, language }: CodeSandboxProps) {
       {/* Header with Language */}
       <div className="flex items-center justify-between p-3 bg-slate-800 text-slate-200">
         <span className="font-medium text-sm capitalize">
-          {language} Example
+          {language === "output" ? "Output" : `${language} Example`}
         </span>
         <Button
           variant="ghost"

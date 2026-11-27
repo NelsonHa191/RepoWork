@@ -4,8 +4,9 @@ import ExploreMessages from "./explore-messages";
 import ChatHeader from "./chat-header";
 import ChatInput from "./chat-input";
 import { Message, useChat } from "@ai-sdk/react";
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { generateUUID } from "@/lib/utils";
+import { saveChat } from "@/lib/demo/history";
 import {
   useNodesState,
   useEdgesState,
@@ -21,7 +22,7 @@ import Dagre from "@dagrejs/dagre";
 import { ResizableHandle } from "./ui/resizable";
 import { ResizablePanelGroup } from "./ui/resizable";
 import { ResizablePanel } from "./ui/resizable";
-import { User } from "better-auth";
+import type { DemoUser as User } from "@/lib/demo/user";
 
 // Layout function for organizing the graph nodes
 const getLayoutedElements = (
@@ -65,6 +66,11 @@ const getLayoutedElements = (
 export type CustomNode = Node<{ label: string }>;
 export type CustomEdge = Edge;
 
+/** First ~50 characters of an answer, without markdown symbols, for a graph node. */
+export function plainLabel(text: string) {
+  return text.replace(/[#*_`>]+/g, "").replace(/\s+/g, " ").trim().substring(0, 50) + "...";
+}
+
 export default function ExploreChat({
   id,
   initialMessages,
@@ -86,17 +92,33 @@ export default function ExploreChat({
     useNodesState<CustomNode>(initialNodes);
   const [edges, setEdges, onEdgesChange] =
     useEdgesState<CustomEdge>(initialEdges);
-  const { messages, input, handleInputChange, handleSubmit, append, setInput } =
-    useChat({
-      id,
-      initialMessages,
-      generateId: generateUUID,
-      sendExtraMessageFields: true,
-      api: "/api/explore",
-      onFinish: (message) => {
-        messageToNodes(message);
-      },
-    });
+  // All edges so far, for laying out the full graph when an answer arrives
+  const edgesRef = useRef<CustomEdge[]>(initialEdges);
+  const {
+    messages,
+    input,
+    handleInputChange,
+    handleSubmit,
+    append,
+    setInput,
+    status,
+  } = useChat({
+    id,
+    initialMessages,
+    generateId: generateUUID,
+    sendExtraMessageFields: true,
+    api: "/api/explore",
+    onFinish: (message) => {
+      messageToNodes(message);
+    },
+  });
+
+  // Demo: save the chat in this browser once each answer finishes
+  // (the original API route saved it to the database instead)
+  useEffect(() => {
+    if (!user || status !== "ready" || messages.length === 0) return;
+    saveChat({ id, title: messages[0].content, mode: "explore", messages });
+  }, [status, messages, id, user]);
 
   const messageToNodes = useCallback(
     (message: Message) => {
@@ -138,7 +160,7 @@ export default function ExploreChat({
       // create root and suggestions nodes
       const rootNode = {
         id: message.id,
-        data: { label: message.content.substring(0, 50) + "..." },
+        data: { label: plainLabel(message.content) },
         position: { x: 0, y: 0 },
       };
       const suggestionNodes = suggestionsData.map((suggestion) => {
@@ -173,13 +195,17 @@ export default function ExploreChat({
       const newNodes = [rootNode, ...suggestionNodes];
       const newEdges = [...suggestionEdges];
 
-      const layoutedElements = getLayoutedElements(newNodes, newEdges, {
-        direction: "TB",
-      });
-
-      // Update both nodes and edges
-      setNodes((nodes) => [...nodes, ...layoutedElements.nodes]);
-      setEdges((edges) => [...edges, ...layoutedElements.edges]);
+      // Lay out the whole graph again (not just the new nodes), so a new
+      // branch sits under the suggestion it came from instead of on top of
+      // the earlier nodes
+      const allEdges = [...edgesRef.current, ...newEdges];
+      edgesRef.current = allEdges;
+      setNodes((nodes) =>
+        getLayoutedElements([...nodes, ...newNodes], allEdges, {
+          direction: "TB",
+        }).nodes
+      );
+      setEdges(allEdges);
     },
     [setEdges, setNodes]
   );
@@ -237,6 +263,7 @@ export default function ExploreChat({
         handleInputChange={handleInputChange}
         mode="explore"
         setMode={modeHandler}
+        setInput={setInput}
       />
     );
   }

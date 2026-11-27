@@ -12,25 +12,72 @@ import { Textarea } from "@/components/ui/textarea";
 import { ArrowUp, BookOpen, Rocket } from "lucide-react";
 import { memo, useState, useEffect } from "react";
 import { cn } from "@/lib/utils";
+import { demoPrompts } from "@/lib/demo/catalog";
 
 export default memo(ChatInput);
 
+// Demo: the rotating placeholders are the topics the demo has answers for
 const placeholderPrompts = {
-  explore: [
-    "The newest LLM models",
-    "Explain quantum computing",
-    "Creative writing prompts about space",
-    "Best practices for React development",
-    "Summarize the latest AI research papers",
-  ],
-  learn: [
-    "Learn how to code in Python",
-    "Teach me about quantum physics",
-    "Help me understand machine learning",
-    "I want to learn about world history",
-    "Guide me through writing a novel",
-  ],
+  explore: demoPrompts("explore"),
+  learn: demoPrompts("learn"),
 };
+
+// Demo: the original let you pick a Gemini model. The demo has no live model,
+// so the picker shows the originals as unavailable.
+function ModelSelect({ className }: { className: string }) {
+  return (
+    <Select>
+      <SelectTrigger className={className}>
+        <SelectValue placeholder="demo (pre-written)" />
+      </SelectTrigger>
+      <SelectContent className="rounded-xl border-2">
+        <SelectItem value="demo">demo (pre-written)</SelectItem>
+        <SelectItem value="gemini-2.0-flash" disabled>
+          gemini 2.0 flash (needs API key)
+        </SelectItem>
+        <SelectItem value="gemini-2.0-flash-lite" disabled>
+          gemini 2.0 flash-lite (needs API key)
+        </SelectItem>
+        <SelectItem value="gemini-2.5-pro" disabled>
+          gemini 2.5 pro (needs API key)
+        </SelectItem>
+      </SelectContent>
+    </Select>
+  );
+}
+
+function DemoPromptChips({
+  mode,
+  setInput,
+}: {
+  mode: "explore" | "learn";
+  setInput?: (value: string) => void;
+}) {
+  if (!setInput) return null;
+  return (
+    <div className="mt-5 ml-1">
+      <p className="text-xs text-muted-foreground mb-2">
+        <span className="font-medium text-foreground">Demo mode:</span> answers
+        are pre-written so this runs without API keys. Try one of these:
+      </p>
+      <div className="flex flex-wrap gap-2">
+        {placeholderPrompts[mode].map((prompt) => (
+          <button
+            key={prompt}
+            type="button"
+            onClick={() => {
+              setInput(prompt);
+              document.getElementById(`${mode}-topic`)?.focus();
+            }}
+            className="rounded-full border px-3 py-1 text-xs sm:text-sm hover:bg-muted cursor-pointer transition-colors"
+          >
+            {prompt}
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 function ChatInput({
   onboarding = false,
@@ -39,6 +86,7 @@ function ChatInput({
   handleInputChange,
   mode = "explore",
   setMode,
+  setInput,
 }: {
   onboarding: boolean;
   submitUserMessage: (e: React.FormEvent<HTMLFormElement>) => void;
@@ -46,6 +94,7 @@ function ChatInput({
   handleInputChange: (e: React.ChangeEvent<HTMLTextAreaElement>) => void;
   mode?: "explore" | "learn";
   setMode?: (mode: "explore" | "learn") => void;
+  setInput?: (value: string) => void;
 }) {
   const [placeholderIndex, setPlaceholderIndex] = useState(0);
   const [currentPlaceholder, setCurrentPlaceholder] = useState(
@@ -127,6 +176,7 @@ function ChatInput({
                     </span>
                   )}
                   <Textarea
+                    id="explore-topic"
                     value={input}
                     onChange={handleInputChange}
                     placeholder=""
@@ -135,22 +185,7 @@ function ChatInput({
                   />
                 </div>
                 <div className="absolute bottom-0 w-full flex justify-between items-center px-3 sm:px-4 pb-3">
-                  <Select>
-                    <SelectTrigger className="w-[100px] sm:w-[180px]">
-                      <SelectValue placeholder="gemini 2.0 flash" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-2">
-                      <SelectItem value="gemini-2.0-flash">
-                        gemini 2.0 flash
-                      </SelectItem>
-                      <SelectItem value="gemini-2.0-flash-lite">
-                        gemini 2.0 flash-lite
-                      </SelectItem>
-                      <SelectItem value="gemini-2.5-pro">
-                        gemini 2.5 pro
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <ModelSelect className="w-[160px] sm:w-[180px]" />
                   <Button
                     type="submit"
                     variant="default"
@@ -193,22 +228,7 @@ function ChatInput({
                   </div>
                 </div>
                 <div className="absolute bottom-0 w-full flex justify-between items-center px-3 sm:px-4 pb-3">
-                  <Select>
-                    <SelectTrigger className="w-[100px] sm:w-[180px]">
-                      <SelectValue placeholder="gemini 2.0 flash" />
-                    </SelectTrigger>
-                    <SelectContent className="rounded-xl border-2">
-                      <SelectItem value="gemini-2.0-flash">
-                        gemini 2.0 flash
-                      </SelectItem>
-                      <SelectItem value="gemini-2.0-flash-lite">
-                        gemini 2.0 flash-lite
-                      </SelectItem>
-                      <SelectItem value="gemini-2.5-pro">
-                        gemini 2.5 pro
-                      </SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <ModelSelect className="w-[160px] sm:w-[180px]" />
                   <Button
                     type="submit"
                     variant="default"
@@ -253,6 +273,8 @@ function ChatInput({
               </Button>
             </div>
           )}
+
+          <DemoPromptChips mode={mode} setInput={setInput} />
         </div>
       </div>
     );
@@ -276,20 +298,7 @@ function ChatInput({
             />
           </div>
           <div className="absolute bottom-0 w-full flex justify-between items-center px-3 sm:px-4 pb-3">
-            <Select>
-              <SelectTrigger className="w-[150px] sm:w-[180px]">
-                <SelectValue placeholder="gemini 2.0 flash" />
-              </SelectTrigger>
-              <SelectContent className="rounded-xl border-2">
-                <SelectItem value="gemini-2.0-flash">
-                  gemini 2.0 flash
-                </SelectItem>
-                <SelectItem value="gemini-2.0-flash-lite">
-                  gemini 2.0 flash-lite
-                </SelectItem>
-                <SelectItem value="gemini-2.5-pro">gemini 2.5 pro</SelectItem>
-              </SelectContent>
-            </Select>
+            <ModelSelect className="w-[150px] sm:w-[180px]" />
             <Button
               type="submit"
               variant="default"

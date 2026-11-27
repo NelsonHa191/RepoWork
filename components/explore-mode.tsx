@@ -1,7 +1,7 @@
 // components/explore-mode.tsx
 import { generateUUID } from "@/lib/utils";
 import ExploreChat from "./explore-chat";
-import { User } from "better-auth";
+import type { DemoUser as User } from "@/lib/demo/user";
 
 export default function ExploreMode({
   modeHandler,

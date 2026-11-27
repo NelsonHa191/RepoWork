@@ -7,7 +7,7 @@ import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
 import { parseCodeBlocksFromMessage } from "@/app/(chat)/parse-code-blocks";
 import CodeSandbox from "@/app/(chat)/code-sandbox";
-import YouTubeShorts from "@/app/(chat)/youtube-shorts";
+import DemoVideo from "@/components/demo-video";
 import { Button } from "@/components/ui/button";
 
 export default memo(LearnMessages);
@@ -224,7 +224,10 @@ function LearnMessages({
                         }
                       }}
                     >
-                      <YouTubeShorts topicQuery={videoQuery} />
+                      <DemoVideo
+                        courseTopic={messages[0]?.content ?? ""}
+                        lessonNumber={Math.floor(index / 2) + 1}
+                      />
                     </div>
                   )}
                 </div>

@@ -10,6 +10,8 @@ const compat = new FlatCompat({
 });
 
 const eslintConfig = [
+  // legacy/ holds the original (pre-demo) code for reference; it isn't built
+  { ignores: ["legacy/**"] },
   ...compat.extends("next/core-web-vitals", "next/typescript"),
 ];
 
