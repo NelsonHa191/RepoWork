@@ -1,22 +1,14 @@
 import { AppSidebar } from "@/components/app-sidebar";
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar";
-import { auth } from "@/lib/auth"; // path to your Better Auth server instance
-import { headers } from "next/headers";
+import { DEMO_USER } from "@/lib/demo/user";
 
-export default async function Layout({
-  children,
-}: {
-  children: React.ReactNode;
-}) {
-  // Get the user session from the auth API
-  const session = await auth.api.getSession({
-    headers: await headers(), // you need to pass the headers object
-  });
-
+export default function Layout({ children }: { children: React.ReactNode }) {
+  // Demo: everyone is signed in as the demo user (the original read the
+  // Better Auth session here).
   return (
     <>
       <SidebarProvider>
-        <AppSidebar user={session?.user} />
+        <AppSidebar user={DEMO_USER} />
         <SidebarInset className="outline outline-border">
           {children}
         </SidebarInset>

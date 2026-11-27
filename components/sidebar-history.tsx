@@ -1,7 +1,6 @@
-import { useQuery } from "@tanstack/react-query";
-import { getHistoryByUserId } from "@/app/(chat)/actions";
 import { isToday, isYesterday, subMonths, subWeeks } from "date-fns";
-import { Chat } from "@/lib/db/schema";
+// Demo: history comes from this browser instead of the database
+import { useChatHistory, type ChatSummary as Chat } from "@/lib/demo/history";
 import {
   SidebarGroup,
   SidebarGroupContent,
@@ -13,7 +12,7 @@ import {
 
 import Link from "next/link";
 import { memo, useState } from "react";
-import { useParams, usePathname } from "next/navigation";
+import { useParams } from "next/navigation";
 import { BookOpen, Rocket } from "lucide-react";
 
 type GroupedChats = {
@@ -60,16 +59,12 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
 
 export function SidebarHistory({ userId }: { userId: string | undefined }) {
   const { id } = useParams();
-  const pathname = usePathname();
   const [activeMode, setActiveMode] = useState<"all" | "explore" | "learn">(
     "all"
   );
 
-  const { data: history, isLoading } = useQuery({
-    queryKey: ["history", pathname, userId, activeMode],
-    queryFn: () => getHistoryByUserId(userId || "", activeMode),
-    enabled: !!userId,
-  });
+  const history = useChatHistory();
+  const isLoading = false;
 
   // Filter chats by mode
   const filterChatsByMode = (

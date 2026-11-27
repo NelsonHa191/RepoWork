@@ -5,7 +5,8 @@ import {
   Bell,
   ChevronsUpDown,
   CreditCard,
-  LogOut,
+  Info,
+  RotateCcw,
   Sparkles,
   User,
 } from "lucide-react";
@@ -26,8 +27,8 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar";
-import { authClient } from "@/lib/auth-client";
 import { Button } from "@/components/ui/button";
+import { resetDemo } from "@/lib/demo/history";
 
 interface User {
   name: string;
@@ -38,13 +39,13 @@ export function NavUser({ user }: { user: User | undefined }) {
   const { isMobile, state } = useSidebar();
   const router = useRouter();
 
-  const handleLogout = async () => {
-    try {
-      await authClient.signOut();
-      router.push("/login");
-    } catch (err) {
-      console.error("Error during logout:", err);
-    }
+  // Demo: there's no real account to sign out of, so this clears the chats
+  // saved in this browser and starts fresh.
+  const handleResetDemo = () => {
+    if (!window.confirm("Reset the demo? This deletes the chats saved in this browser.")) return;
+    resetDemo();
+    router.push("/");
+    router.refresh();
   };
 
   if (!user) {
@@ -132,9 +133,13 @@ export function NavUser({ user }: { user: User | undefined }) {
               </DropdownMenuItem>
             </DropdownMenuGroup>
             <DropdownMenuSeparator />
-            <DropdownMenuItem onClick={handleLogout}>
-              <LogOut />
-              Log out
+            <DropdownMenuItem onClick={() => router.push("/about")}>
+              <Info />
+              About this project
+            </DropdownMenuItem>
+            <DropdownMenuItem onClick={handleResetDemo}>
+              <RotateCcw />
+              Reset demo
             </DropdownMenuItem>
           </DropdownMenuContent>
         </DropdownMenu>

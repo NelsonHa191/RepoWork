@@ -1,61 +1,75 @@
-import { google } from "@ai-sdk/google";
+// app/(chat)/api/code-assistant/route.ts (demo version)
+// The original asked Gemini to predict a program's output or review the code.
+// The demo answers from the built-in examples (whose outputs were recorded by
+// really running them) and explains the limits for anything else.
+// Original: legacy/app/(chat)/api/code-assistant/route.ts
 import { createDataStreamResponse, streamText } from "ai";
-import { Message } from "@ai-sdk/react";
+import { CODE_SAMPLES, sameCode } from "@/lib/demo/code-samples";
+import { LESSON_EXAMPLES } from "@/lib/demo/learn-content";
+import { scriptedModel } from "@/lib/demo/scripted-model";
+import { badRequest, readChatBody } from "@/lib/demo/request";
 
-// Allow streaming responses up to 30 seconds
 export const maxDuration = 30;
 
-export async function POST(req: Request) {
-  const { messages } = await req.json();
+const F = "```";
 
-  // Detect if this is a code execution request
-  const isExecutionRequest = messages.some(
-    (message: Message) =>
-      message.role === "user" &&
-      typeof message.content === "string" &&
-      message.content.includes("What would be the output of running this") &&
-      message.content.includes("code?")
+function extractCode(prompt: string) {
+  const match = prompt.match(/```[a-zA-Z0-9+#]*\n([\s\S]*?)```/);
+  return match ? match[1] : "";
+}
+
+function executionReply(language: string, code: string) {
+  const known = [...Object.values(CODE_SAMPLES), ...LESSON_EXAMPLES].find(
+    (s) => s.language === language && sameCode(s.code, code)
   );
+  if (known) return known.output;
+  return `[Demo] Running ${language} code needs the AI backend, which is switched off in this demo.
+
+- JavaScript runs for real, right in your browser: pick JavaScript and press Run.
+- The built-in example for each language still shows its real output. Clear the editor (or switch languages) to bring it back.`;
+}
+
+function reviewReply(language: string, code: string) {
+  const sample = Object.values(CODE_SAMPLES).find(
+    (s) => s.language === language && sameCode(s.code, code)
+  );
+  if (sample) return sample.review;
+
+  const lines = code.split("\n").filter((l) => l.trim()).length;
+  return `### The AI review is offline in this demo
+
+The original Code Playground sent your code to **Gemini 2.0 Flash**, which explained it, pointed out bugs and suggested improvements. That needs an API key, so it's switched off here.
+
+Your ${language} snippet has **${lines} non-empty line${lines === 1 ? "" : "s"}**. To see what a review looked like, switch back to the built-in **${language}** example (or clear the editor) and open this tab again.
+
+${F}text
+Built-in examples: ${Object.keys(CODE_SAMPLES).join(", ")}
+${F}`;
+}
+
+export async function POST(req: Request) {
+  const body = await readChatBody(req);
+  if (!body) return badRequest();
+
+  const last = body.messages.filter((m) => m.role === "user").at(-1);
+  if (!last) return badRequest();
+
+  const prompt = last.content;
+  const isExecutionRequest =
+    prompt.includes("What would be the output of running this") && prompt.includes("code?");
+  const language =
+    prompt.match(/(?:running this|working with) ([a-z+#]+) code/i)?.[1]?.toLowerCase() ?? "python";
+  const code = extractCode(prompt);
+
+  const text = isExecutionRequest ? executionReply(language, code) : reviewReply(language, code);
 
   return createDataStreamResponse({
     execute: (dataStream) => {
       const result = streamText({
-        model: google("gemini-2.0-flash-001", {
-          useSearchGrounding: true,
-        }),
-        system: isExecutionRequest
-          ? `
-          - You are a code execution simulator that provides clean, accurate output.
-          - When given code in any programming language, predict what the output would be if the code were executed.
-          - Return ONLY the exact output - no formatting, no backticks, no "Output:", just the raw output as it would appear.
-          - If there would be an error, return just the error message as it would appear.
-          - If the code has no output, say "No output".
-          - For interactive programs requiring input, assume reasonable default inputs.
-          - Be minimal and precise - don't add any explanations or decorations to the output.
-          - Example: For 'print("Hello World")' in Python, your entire response should be just "Hello World"
-          `
-          : `
-          - You are a code assistant designed to help developers write, understand, and debug code.
-          - When provided with code:
-            - Identify any potential issues, bugs, or inefficiencies
-            - Suggest improvements in clarity, performance, or security
-            - Explain complex sections clearly and concisely
-            - Provide educational context about specific functions, libraries, or patterns
-            - Offer alternative approaches when appropriate
-          - When answering questions:
-            - Provide code examples that are clear and well-documented
-            - Follow best practices for the language in question
-            - Be pragmatic and focused on real-world application
-          - Always:
-            - Provide complete, working solutions when possible
-            - Explain your reasoning, especially for complex suggestions
-            - Maintain a helpful, educational tone
-          `,
-        messages,
-        temperature: isExecutionRequest ? 0.1 : 0.5, // Lower temperature for execution to be more precise
+        model: scriptedModel({ text }, { chunkDelayInMs: isExecutionRequest ? 5 : 12 }),
+        prompt,
       });
-
-      result.mergeIntoDataStream(dataStream, { sendSources: true });
+      result.mergeIntoDataStream(dataStream);
     },
   });
 }

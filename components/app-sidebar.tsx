@@ -13,12 +13,13 @@ import {
   Settings2,
   SquareTerminal,
   Code,
+  Info,
   PlusIcon,
 } from "lucide-react";
 
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { User } from "better-auth";
+import type { DemoUser as User } from "@/lib/demo/user";
 
 import {
   Sidebar,
@@ -249,6 +250,22 @@ export function AppSidebar({
               >
                 <PlusIcon />
                 <span>New Chat</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="Code Playground">
+                <Link href="/code">
+                  <Code />
+                  <span>Code Playground</span>
+                </Link>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+            <SidebarMenuItem>
+              <SidebarMenuButton asChild tooltip="About this project">
+                <Link href="/about">
+                  <Info />
+                  <span>About this project</span>
+                </Link>
               </SidebarMenuButton>
             </SidebarMenuItem>
           </SidebarMenu>
